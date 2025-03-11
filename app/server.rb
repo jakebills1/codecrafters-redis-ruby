@@ -11,12 +11,19 @@ class YourRedisServer
 
     # Uncomment this block to pass the first stage
     server = TCPServer.new(@port)
-    client = server.accept
-    # hardcode length of PING command message at this point
-    while client.read(14)
-      client.write("+PONG\r\n")
+    loop do
+      client = server.accept
+      pid = fork do
+        server.close
+        @client = client
+        while @client.read(14)
+          @client.write("+PONG\r\n")
+        end
+        @client.close
+      end
+      Process.detach(pid)
     end
-    client.close
+    server.close
   end
 end
 
