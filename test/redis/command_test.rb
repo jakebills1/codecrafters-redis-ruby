@@ -20,18 +20,32 @@ describe ::Redis::Command do
   end
 
   describe '#complete?' do
-    describe '' do
-      it 'is true' do
-        @command.type = 'PING'
-        @command.length = 1
-        assert @command.complete?
+    describe 'when the command type is PING' do
+      describe 'and has all necessary fields filled in' do
+        it 'is true' do
+          @command.type = 'PING'
+          @command.length = 1
+          assert @command.complete?
+        end
       end
     end
-    describe 'when the command does not has all necessary fields for its type filled out' do
-      it 'is false' do
-        @command.type = 'ECHO'
-        @command.length = 2
-        assert !@command.complete?
+    describe 'when the command type is SET' do
+      describe 'and has all necessary fields filled in' do
+        it 'is true' do
+          @command.length = 3
+          @command.type = 'SET'
+          @command.key = 'foo'
+          @command.value = 'bar'
+          assert @command.complete?
+        end
+      end
+      describe 'and does not have all necessary fields filled in' do
+        it 'is false' do
+          @command.length = 3
+          @command.type = 'SET'
+          @command.key = 'foo'
+          assert !@command.complete?
+        end
       end
     end
   end
@@ -48,6 +62,13 @@ describe ::Redis::Command do
         @command.type = 'ECHO'
         @command.value = 'hey'
         assert @command.encoded_response.start_with? '$'
+      end
+    end
+    describe 'when the type should respond with a null string encoding' do
+      it 'returns a null string' do
+        @command.type = 'GET'
+        @command.value = 'foo'
+        assert @command.encoded_response.start_with? '$-1'
       end
     end
   end

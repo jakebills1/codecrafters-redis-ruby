@@ -9,5 +9,9 @@ module Redis
     def as_simple_string(message)
       "+#{message}\r\n"
     end
+
+    def null_string
+      "$-1\r\n"
+    end
   end
 end

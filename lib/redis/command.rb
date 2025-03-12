@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 require_relative './encoder'
+require_relative './storage'
 
 module Redis
   class Command
     include Encoder
+    include Storage
+
     IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET'].freeze
-    attr_accessor :length, :type, :value, :options
+    attr_accessor :length, :type, :key, :value, :options
 
     def initialize
       @options = {}
@@ -16,7 +19,7 @@ module Redis
     end
 
     def complete?
-      length && type && (value || value_not_required?)
+      length && type && (value || value_not_required?) && (key || key_not_required?)
     end
 
     def encoded_response
@@ -25,16 +28,18 @@ module Redis
         as_simple_string('PONG')
       when 'SET'
         as_simple_string('OK')
-      when 'ECHO', 'GET'
+      when 'ECHO'
         as_bulk_string(value)
+      when 'GET'
+        retrieved_value = get(key)
+        retrieved_value ? as_bulk_string(retrieved_value) : null_string
       end
     end
 
     def value=(incoming_value)
       if type == 'SET'
-        # persist value
-      elsif type == 'GET'
-        # fetch from storage
+        set(key, incoming_value)
+        @value = incoming_value
       else
         @value = incoming_value
       end
@@ -42,7 +47,11 @@ module Redis
 
     private
     def value_not_required?
-      type == 'PING' || type == 'SET'
+      type == 'PING' || type == 'GET'
+    end
+
+    def key_not_required?
+      !['SET', 'GET'].include? type
     end
   end
 end

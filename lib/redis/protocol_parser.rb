@@ -21,7 +21,11 @@ module Redis
       elsif command.is_implemented? token
         command.type = token
       elsif !token.start_with?(STR_LENGTH_INDICATOR)
-        command.value = token
+        if ['SET', 'GET'].include?(command.type) && command.key.nil?
+          command.key = token
+        else
+          command.value = token
+        end
       end
     end
 

@@ -21,27 +21,63 @@ describe ::Redis::ProtocolParser do
       end
     end
     describe 'when passed a string that is not the string length indicator' do
-      it 'sets the commands value attr' do
-        @parser.parse 'hey'
-        assert @parser.command.value == 'hey'
+      describe 'and the command type does not require a key attr to be set' do
+        it 'sets the commands value attr' do
+          @parser.parse 'hey'
+          assert @parser.command.value == 'hey'
+        end
       end
     end
   end
   describe '#command_complete?' do
-    describe 'when passed a series of valid redis command tokens' do
+    describe 'the command type is ECHO' do
       it 'reports the command is complete' do
         ['*2', '$4', 'ECHO', '$3', 'hey'].each do |token|
           @parser.parse token
         end
         assert @parser.command_complete?
       end
-    end
-    describe 'when passed an incomplete series of redis command tokens' do
       it 'reports the command is incomplete' do
         ['*2', '$4', 'ECHO', '$3'].each do |token|
           @parser.parse token
         end
         assert !@parser.command_complete?
+      end
+    end
+    describe 'the command type is SET' do
+      describe 'and all required attrs are parsed' do
+        it 'reports the command is complete' do
+          ['*3', '$3', 'SET', '$3', 'foo', '$3', 'bar'].each do |token|
+            @parser.parse token
+          end
+          assert @parser.command_complete?
+        end
+      end
+      describe 'and not all required attrs are parsed' do
+        it 'reports the command is incomplete' do
+          ['*3', '$3', 'SET', '$3', 'foo'].each do |token|
+            @parser.parse token
+          end
+          assert !@parser.command_complete?
+        end
+      end
+    end
+    describe 'the command type is GET' do
+      describe 'and all required attrs are parsed' do
+        it 'reports the command is complete' do
+          ['*2', '$3', 'GET', '$3', 'foo'].each do |token|
+            @parser.parse token
+          end
+          assert @parser.command_complete?
+        end
+      end
+      describe 'and not all required attrs are parsed' do
+        it 'reports the command is incomplete' do
+          ['*2', '$3', 'GET'].each do |token|
+            @parser.parse token
+          end
+          assert !@parser.command_complete?
+        end
       end
     end
   end
