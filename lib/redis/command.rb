@@ -8,6 +8,7 @@ module Redis
     include Storage
 
     IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET'].freeze
+    IMPLEMENTED_OPTIONS = ['px']
     attr_accessor :length, :type, :key, :value, :options
 
     def initialize
@@ -16,6 +17,10 @@ module Redis
 
     def is_implemented?(type)
       IMPLEMENTED_TYPES.include? type
+    end
+
+    def is_implemented_option?(option)
+      IMPLEMENTED_OPTIONS.include? option
     end
 
     def complete?

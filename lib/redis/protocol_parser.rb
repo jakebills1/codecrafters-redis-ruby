@@ -21,8 +21,16 @@ module Redis
       elsif !token.start_with?(STR_LENGTH_INDICATOR)
         if ['SET', 'GET'].include?(command.type) && command.key.nil?
           command.key = token
-        else
+        elsif command.value.nil?
           command.value = token
+        else # option
+          if command.is_implemented_option? token # key
+            command.options[token] = 'pending'
+          else # value
+            # todo hacky, handle error if option not found
+            option = command.options.find { |_, v| v == 'pending' }
+            command.options[option.first] = token
+          end
         end
       end
     end
