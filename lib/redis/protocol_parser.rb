@@ -13,11 +13,9 @@ module Redis
       @command = Command.new
     end
 
-    # example input:
-
     def parse(token)
       if token.start_with? ARY_LENGTH_INDICATOR
-        command.length = token.sub(ARY_LENGTH_INDICATOR, '').to_i
+        command.length = token.delete(ARY_LENGTH_INDICATOR).to_i
       elsif command.is_implemented? token
         command.type = token
       elsif !token.start_with?(STR_LENGTH_INDICATOR)
