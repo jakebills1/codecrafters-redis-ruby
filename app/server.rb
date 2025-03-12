@@ -1,6 +1,7 @@
 require "socket"
 require "nio4r"
 require_relative '../lib/logger'
+require_relative '../lib/redis_protocol_parser'
 class YourRedisServer
   include Logger
 
@@ -17,7 +18,10 @@ class YourRedisServer
     monitor = selector.register(server, :r)
     monitor.value = proc { accept_new_client }
     loop do
-      selector.select { |monitor| monitor.value.call }
+      selector.select do |monitor|
+        # log monitor
+        monitor.value.call
+      end
     end
   ensure
     server.close
@@ -30,33 +34,58 @@ class YourRedisServer
   def accept_new_client
     client = server.accept
     monitor = selector.register(client, :r)
-    monitor.value = proc { read_from_client(monitor) }
+    monitor.value = proc { read_command(monitor, RedisProtocolParser.new) }
   end
 
-  def read_from_client(monitor)
-    begin
-      monitor.io.read_nonblock(PING_BYTES)
-      monitor.interests = :w
-      monitor.value = proc { write_to_client(monitor) }
-    rescue IO::WaitReadable
-    rescue EOFError
-      selector.deregister(monitor)
-      monitor.close
+  def read_command(monitor, parser)
+    # log "started read callback"
+    loop do
+      # log "read callback loop started"
+      begin
+        token = readline_non_block(monitor.io)
+        # log "read token from conn: #{token}"
+        parser.parse(token)
+        break if parser.command_complete?
+      rescue IO::WaitReadable
+        monitor.value = proc { read_command(monitor, parser) }
+        return
+      rescue EOFError
+        selector.deregister(monitor)
+        monitor.close
+        return
+      end
     end
+    # log "read callback loop finished"
+    # log "command type = #{parser.command.type}, command value = #{parser.command.value}"
+    monitor.interests = :w
+    monitor.value = proc { respond(monitor, parser.command) }
   end
 
-  def write_to_client(monitor)
-    monitor.io.write_nonblock(PING_RESP)
+  def respond(monitor, command)
+    # log "write callback"
+    monitor.io.write_nonblock(command.encoded_response)
     monitor.interests = :r
-    monitor.value = proc { read_from_client(monitor) }
+    monitor.value = proc { read_command(monitor, RedisProtocolParser.new) }
   rescue IO::WaitWritable
   end
 
   def cleanup
     server.close
     selector.close
-    log 'redis shutting down gracefully'
+    # log 'redis shutting down gracefully'
     exit
+  end
+
+  def readline_non_block(io)
+    # this will raise an error if the read would block,
+    # expecting that to be handled in read_command
+    buf = ""
+    while read_byte = io.read_nonblock(1)
+      buf << read_byte
+      if buf.end_with?("\r\n")
+        return buf.sub("\r\n", "")
+      end
+    end
   end
 end
 
