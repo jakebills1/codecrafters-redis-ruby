@@ -19,7 +19,7 @@ module Redis
     end
 
     def complete?
-      length && type && (value || value_not_required?) && (key || key_not_required?)
+      length && (length == count_of_attrs)
     end
 
     def encoded_response
@@ -52,6 +52,15 @@ module Redis
 
     def key_not_required?
       !['SET', 'GET'].include? type
+    end
+
+    def count_of_attrs
+      count = 0
+      count += 1 if type
+      count += 1 if value
+      count += 1 if key
+      count += options.keys.size
+      count
     end
   end
 end

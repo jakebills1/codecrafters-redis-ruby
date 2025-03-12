@@ -56,7 +56,6 @@ module Redis
         return
       rescue EOFError
         selector.deregister(monitor)
-        monitor.close
       end
       # log "read callback loop finished"
       # log "command type = #{parser.command.type}, command value = #{parser.command.value}"
