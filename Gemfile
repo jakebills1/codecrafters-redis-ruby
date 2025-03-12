@@ -9,3 +9,7 @@ source "https://rubygems.org"
 gem "bindata", "~> 2.4"
 
 gem "nio4r", "~> 2.7"
+
+gem "rake", "~> 13.2"
+
+gem "minitest", "~> 5.25"

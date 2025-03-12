@@ -6,7 +6,7 @@ require_relative './logger'
 module Redis
   class Server
     include Logger
-    
+
     def initialize(port)
       @port = port
       @server = TCPServer.new(@port)
