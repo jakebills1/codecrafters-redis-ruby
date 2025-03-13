@@ -1,6 +1,5 @@
 require "socket"
 require "nio4r"
-require_relative './protocol_parser'
 require_relative './logger'
 require_relative './command'
 

@@ -71,5 +71,33 @@ describe ::Redis::Command do
         assert @command.encoded_response.start_with? '$-1'
       end
     end
+    describe 'when the entry has expired' do
+      it 'returns a null string' do
+        @command.type = 'SET'
+        @command.key = 'foo'
+        @command.value = 'bar'
+        @command.set_option('px', '10')
+        @command.persist!
+        sleep 1
+        get_command = ::Redis::Command.new
+        get_command.type = 'GET'
+        get_command.key = 'foo'
+        assert get_command.encoded_response.start_with? '$-1'
+      end
+    end
+    describe 'when the entry has not expired' do
+      it 'returns the value as bulk string' do
+        @command.type = 'SET'
+        @command.key = 'foo'
+        @command.value = 'bar'
+        @command.set_option('px', '10000')
+        @command.persist!
+        get_command = ::Redis::Command.new
+        sleep 1
+        get_command.type = 'GET'
+        get_command.key = 'foo'
+        assert get_command.encoded_response == "$3\r\nbar\r\n"
+      end
+    end
   end
 end
