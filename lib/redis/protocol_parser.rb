@@ -29,7 +29,7 @@ module Redis
           else # value
             # todo hacky, handle error if option not found
             option = command.options.find { |_, v| v == 'pending' }
-            command.options[option.first] = token
+            command.set_option option.first, token
           end
         end
       end

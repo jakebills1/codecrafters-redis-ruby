@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 require_relative './encoder'
 require_relative './storage'
+require_relative './logger'
 
 module Redis
   class Command
     include Encoder
     include Storage
+    include Logger
 
     IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET'].freeze
     IMPLEMENTED_OPTIONS = ['px']
@@ -41,18 +43,31 @@ module Redis
       end
     end
 
-    def value=(incoming_value)
-      if type == 'SET'
-        set(key, incoming_value)
-        @value = incoming_value
-      else
-        @value = incoming_value
-      end
+    # def value=(incoming_value)
+    #   if type == 'SET'
+    #     set(key, incoming_value)
+    #     @value = incoming_value
+    #   else
+    #     @value = incoming_value
+    #   end
+    # end
+
+    def set_option(option_key, value)
+      options[option_key.to_sym] = value
+      # persisted_value = get(key)
+      # set(key, persisted_value, options)
     end
 
-    private
     def value_not_required?
       type == 'PING' || type == 'GET'
+    end
+
+    def value_required?
+      !value_not_required?
+    end
+
+    def key_required?
+      !key_not_required?
     end
 
     def key_not_required?
@@ -64,8 +79,14 @@ module Redis
       count += 1 if type
       count += 1 if value
       count += 1 if key
-      count += options.keys.size
       count
+    end
+
+    def persist!
+      return unless type == 'SET'
+
+      # puts key, value, options
+      set(key, value, options)
     end
   end
 end
