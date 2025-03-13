@@ -43,19 +43,8 @@ module Redis
       end
     end
 
-    # def value=(incoming_value)
-    #   if type == 'SET'
-    #     set(key, incoming_value)
-    #     @value = incoming_value
-    #   else
-    #     @value = incoming_value
-    #   end
-    # end
-
     def set_option(option_key, value)
       options[option_key.to_sym] = value
-      # persisted_value = get(key)
-      # set(key, persisted_value, options)
     end
 
     def value_not_required?
