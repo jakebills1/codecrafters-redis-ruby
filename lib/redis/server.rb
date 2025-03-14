@@ -1,14 +1,13 @@
 require "socket"
 require "nio4r"
 require_relative './logger'
-require_relative './command'
-require_relative './protocol_io'
-require_relative './command_state'
+require_relative './reader'
+require_relative './command_builder'
+require_relative './bad_read_error'
 
 module Redis
   class Server
     include Logger
-    include ProtocolIO
 
     def initialize(port)
       @port = port
@@ -36,50 +35,37 @@ module Redis
 
     def accept_new_client
       client = server.accept
+      log "accepted new client"
       monitor = selector.register(client, :r)
-      monitor.value = proc { read_command(monitor, Command.new, CommandState.new) }
+      monitor.value = proc { read_command(monitor, CommandBuilder.new(Reader.new(monitor.io))) }
     end
 
-    def read_command(monitor, command, state)
+    def read_command(monitor, command_builder)
       # 1. read in 4 bytes, first 2 should be array length m + \r\n
       # 2. m times:
       #   1. read 4 bytes, this is the string length indicator n + \r\n
       #   2. read n + 2 bytes and strip off \r\n
       #   3. pass those bytes into parser
       # 3. once command has read m bulk strings, it is complete
-      until state.complete?
-        log state.current
-        case state.current
-        when :read_length
-          command.length = read_token(monitor.io).delete("*").to_i
-        when :read_type
-          command.type = read_bulk_string(monitor.io)
-        when :read_key
-          command.key = read_bulk_string(monitor.io)
-        when :read_value
-          command.value = read_bulk_string(monitor.io)
-        when :read_option_key
-          command.pending_option_key = read_bulk_string(monitor.io)
-        when :read_option_value
-          opt_value = read_bulk_string(monitor.io)
-          command.set_option(command.pending_option_key, opt_value)
-        end
-        state.transition! command
-      end
-      command.persist!
+      command = command_builder.build
       monitor.interests = :w
       monitor.value = proc { respond(monitor, command) }
-    rescue IO::WaitReadable
-      monitor.value = proc { read_command(monitor, command, state) }
+    rescue IO::WaitReadable, BadReadError => e
+      # reads can fail, in which case we want to retry this method
+      # with the configured command and state
+      # when the IO is selected for reading again
+      log "error caught: '#{e}' at #{e.backtrace}"
+      log command_builder.debug
+      monitor.value = proc { read_command(monitor, command_builder) }
     rescue EOFError
       selector.deregister(monitor)
     end
 
     def respond(monitor, command)
-      # log "write callback"
+      log "writing response to command #{command.type}: #{command.encoded_response}"
       monitor.io.write_nonblock(command.encoded_response)
       monitor.interests = :r
-      monitor.value = proc { read_command(monitor, Command.new, CommandState.new) }
+      monitor.value = proc { read_command(monitor, CommandBuilder.new(Reader.new(monitor.io))) }
     rescue IO::WaitWritable
     end
 

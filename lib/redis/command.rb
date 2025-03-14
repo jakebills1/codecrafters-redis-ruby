@@ -45,6 +45,7 @@ module Redis
 
     def set_option(option_key, value)
       options[option_key.to_sym] = value
+      @pending_option_key = nil
     end
 
     def value_not_required?
@@ -80,6 +81,10 @@ module Redis
 
     def remaining_option_count
       (length - count_of_attrs) / 2
+    end
+
+    def inspect
+      "self = #{self}, length = #{length}, type = #{type}, key = #{key}, value = #{value}, pending_option_key = #{pending_option_key}, options = #{options}"
     end
   end
 end
