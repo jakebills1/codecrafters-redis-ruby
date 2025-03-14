@@ -11,7 +11,7 @@ module Redis
 
     IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET'].freeze
     IMPLEMENTED_OPTIONS = ['px']
-    attr_accessor :length, :type, :key, :value, :options
+    attr_accessor :length, :type, :key, :value, :options, :pending_option_key
 
     def initialize
       @options = {}
@@ -68,7 +68,7 @@ module Redis
       count += 1 if type
       count += 1 if value
       count += 1 if key
-      count
+      count + options.keys.size
     end
 
     def persist!
@@ -76,6 +76,10 @@ module Redis
 
       # puts key, value, options
       set(key, value, options)
+    end
+
+    def remaining_option_count
+      (length - count_of_attrs) / 2
     end
   end
 end
