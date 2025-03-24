@@ -25,7 +25,9 @@ module Redis
     TRANSITIONS = {
       read_length: :read_type,
       read_type: proc do |command|
-        if command.key_required?
+        if command.subtype_required?
+          :read_subtype
+        elsif command.key_required?
           :read_key
         elsif command.value_required?
           :read_value
@@ -35,6 +37,7 @@ module Redis
           :complete
         end
       end,
+      read_subtype: :read_key,
       read_key: proc do |command|
         if command.value_required?
           :read_value

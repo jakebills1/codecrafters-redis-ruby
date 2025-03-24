@@ -4,14 +4,15 @@ require_relative './storage'
 require_relative './logger'
 
 module Redis
+  class CommandTypeNotImplementedError < StandardError; end
   class Command
     include Encoder
     include Storage
     include Logger
 
-    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET'].freeze
+    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET', 'CONFIG'].freeze
     IMPLEMENTED_OPTIONS = ['px']
-    attr_accessor :length, :type, :key, :value, :options, :pending_option_key
+    attr_accessor :length, :type, :key, :value, :options, :pending_option_key, :subtype
 
     def initialize
       @options = {}
@@ -29,7 +30,7 @@ module Redis
       length && (length == count_of_attrs)
     end
 
-    def encoded_response
+    def encoded_response(config)
       case type
       when 'PING'
         as_simple_string('PONG')
@@ -40,6 +41,9 @@ module Redis
       when 'GET'
         retrieved_value = get(key)
         retrieved_value ? as_bulk_string(retrieved_value) : null_string
+      when 'CONFIG'
+        # hardcoding this to be for CONFIG GET
+        "*2\r\n" + as_bulk_string(key) + as_bulk_string(config.dir)
       end
     end
 
@@ -49,7 +53,7 @@ module Redis
     end
 
     def value_not_required?
-      type == 'PING' || type == 'GET'
+      type == 'PING' || type == 'GET' || (type == 'CONFIG' && subtype != 'SET')
     end
 
     def value_required?
@@ -57,7 +61,11 @@ module Redis
     end
 
     def key_required?
-      !key_not_required?
+      type == 'CONFIG' || !key_not_required?
+    end
+
+    def subtype_required?
+      type == 'CONFIG'
     end
 
     def key_not_required?
@@ -84,7 +92,15 @@ module Redis
     end
 
     def inspect
-      "self = #{self}, length = #{length}, type = #{type}, key = #{key}, value = #{value}, pending_option_key = #{pending_option_key}, options = #{options}"
+      "self = #{self}, length = #{length}, type = #{type}, subtype = #{subtype}, key = #{key}, value = #{value}, pending_option_key = #{pending_option_key}, options = #{options}"
+    end
+
+    def type=(type_value)
+      if is_implemented?(type_value)
+        @type = type_value
+      else
+        raise CommandTypeNotImplementedError, "#{type_value} not an implemented command"
+      end
     end
   end
 end

@@ -9,8 +9,9 @@ module Redis
   class Server
     include Logger
 
-    def initialize(port)
-      @port = port
+    def initialize(config)
+      @config = config
+      @port = config.port
       @server = TCPServer.new(@port)
       @selector = NIO::Selector.new
       trap('INT') { cleanup }
@@ -31,7 +32,7 @@ module Redis
     end
 
     private
-    attr_reader :server, :port, :selector
+    attr_reader :server, :port, :selector, :config
 
     def accept_new_client
       client = server.accept
@@ -62,8 +63,8 @@ module Redis
     end
 
     def respond(monitor, command)
-      log "writing response to command #{command.type}: #{command.encoded_response}"
-      monitor.io.write_nonblock(command.encoded_response)
+      log "writing response to command #{command.type}: #{command.encoded_response(config)}"
+      monitor.io.write_nonblock(command.encoded_response(config))
       monitor.interests = :r
       monitor.value = proc { read_command(monitor, CommandBuilder.new(Reader.new(monitor.io))) }
     rescue IO::WaitWritable

@@ -1,3 +1,5 @@
 require_relative './redis/server'
+require_relative './redis/configuration'
 
-::Redis::Server.new(6379).start
+configuration = ::Redis::Configuration.new(6379, ARGV).configure!
+::Redis::Server.new(configuration).start

@@ -23,6 +23,8 @@ module Redis
           command.length = command_length
         when :read_type
           command.type = reader.read_bulk_string
+        when :read_subtype
+          command.subtype = reader.read_bulk_string
         when :read_key
           command.key = reader.read_bulk_string
         when :read_value
