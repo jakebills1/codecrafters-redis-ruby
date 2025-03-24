@@ -42,8 +42,8 @@ module Redis
         retrieved_value = get(key)
         retrieved_value ? as_bulk_string(retrieved_value) : null_string
       when 'CONFIG'
-        # hardcoding this to be for CONFIG GET
-        "*2\r\n" + as_bulk_string(key) + as_bulk_string(config.dir)
+        # hardcoding this to be for CONFIG GET dir for now
+        as_bulk_array(key, config.dir)
       end
     end
 

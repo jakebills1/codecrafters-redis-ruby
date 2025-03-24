@@ -1,4 +1,3 @@
-# frozen_string_literal: true
 
 module Redis
   module Encoder
@@ -12,6 +11,12 @@ module Redis
 
     def null_string
       "$-1\r\n"
+    end
+
+    def as_bulk_array(*messages)
+      encoded_ary = "*#{messages.size}\r\n"
+      messages.each { |msg| encoded_ary << as_bulk_string(msg) }
+      encoded_ary
     end
   end
 end
