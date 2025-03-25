@@ -13,3 +13,5 @@ gem "nio4r", "~> 2.7"
 gem "rake", "~> 13.2"
 
 gem "minitest", "~> 5.25"
+
+gem "pry", "~> 0.15.2"
