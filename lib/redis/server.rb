@@ -15,11 +15,16 @@ module Redis
       @config = config
       # somehow, if the config has a dbfilename
       # need to parse it, and inject it into the Storage hash
-      if config.dbfilename
-        parser = RDBParser.new [config.dir, config.dbfilename].join('/')
-        parser.parse
-        # only need to support single database right now
-        Storage.const_set 'DB', parser.data[0]
+      if config.dir && config.dbfilename
+        begin
+          parser = RDBParser.new [config.dir, config.dbfilename].join('/')
+          parser.parse
+          # only need to support single database right now
+          Storage.const_set 'DB', parser.data[0]
+        rescue Errno::ENOENT => e
+          # the tester might give a nonexisting file path
+          log e
+        end
       end
       @port = config.port
       @server = TCPServer.new(@port)

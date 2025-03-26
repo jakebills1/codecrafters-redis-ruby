@@ -18,4 +18,13 @@ module Storage
   def set(key, value, options = {})
     DB[key] = ::Redis::Entry.new(value, options)
   end
+
+  def scan(search_term)
+    # only supported arg for keys right now
+    if search_term == '*'
+      DB.keys
+    else
+      []
+    end
+  end
 end

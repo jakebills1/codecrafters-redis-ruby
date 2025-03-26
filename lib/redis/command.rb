@@ -10,7 +10,7 @@ module Redis
     include Storage
     include Logger
 
-    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET', 'CONFIG'].freeze
+    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET', 'CONFIG', 'KEYS'].freeze
     IMPLEMENTED_OPTIONS = ['px']
     attr_accessor :length, :type, :key, :value, :options, :pending_option_key, :subtype
 
@@ -44,6 +44,9 @@ module Redis
       when 'CONFIG'
         # hardcoding this to be for CONFIG GET dir for now
         as_bulk_array(key, config.dir)
+      when 'KEYS'
+        matching_entries = scan(key)
+        as_bulk_array(*matching_entries)
       end
     end
 
@@ -53,7 +56,7 @@ module Redis
     end
 
     def value_not_required?
-      type == 'PING' || type == 'GET' || (type == 'CONFIG' && subtype != 'SET')
+      type == 'PING' || type == 'GET' || type == 'KEYS' || (type == 'CONFIG' && subtype != 'SET')
     end
 
     def value_required?
@@ -69,7 +72,7 @@ module Redis
     end
 
     def key_not_required?
-      !['SET', 'GET'].include? type
+      !['SET', 'GET', 'KEYS'].include? type
     end
 
     def count_of_attrs
