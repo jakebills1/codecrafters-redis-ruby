@@ -2,7 +2,7 @@
 require_relative './entry'
 
 module Storage
-  DB = {}
+  DB ||= {}
   def get(key)
     entry = DB[key]
     if entry && entry.options[:px]

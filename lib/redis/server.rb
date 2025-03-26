@@ -4,6 +4,8 @@ require_relative './logger'
 require_relative './reader'
 require_relative './command_builder'
 require_relative './bad_read_error'
+require_relative './storage'
+require_relative './rdb_parser'
 
 module Redis
   class Server
@@ -11,6 +13,14 @@ module Redis
 
     def initialize(config)
       @config = config
+      # somehow, if the config has a dbfilename
+      # need to parse it, and inject it into the Storage hash
+      if config.dbfilename
+        parser = RDBParser.new [config.dir, config.dbfilename].join('/')
+        parser.parse
+        # only need to support single database right now
+        Storage.const_set 'DB', parser.data[0]
+      end
       @port = config.port
       @server = TCPServer.new(@port)
       @selector = NIO::Selector.new

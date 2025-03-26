@@ -12,7 +12,9 @@ module Redis
     end
 
     def parse
+      # magic string and redis version number
       @header = io.read(HEADER_BYTES)
+      # metadata
       while (opcode = read_opcode) == METADATA_OPCODE
         # length encoding based on 1byte read:
         #   - when the 2 most significant bits are 00,
@@ -31,8 +33,9 @@ module Redis
         value = length_encoding
         metadata[key] = value
       end
-      if opcode == DB_OPCODE
-        # read past the DB size
+      # databases
+      while opcode == DB_OPCODE
+        # database index
         db_number = length_encoding
         db = {}
         # read past the resizedb info
@@ -40,6 +43,10 @@ module Redis
         puts "#{opcode} should be FB / 251"
         length_encoding
         # length_encoding
+        # next opcode indicates:
+        # - a kv pair with a ms expiry
+        # - a kv pair with a s expiry
+        # - a kv pair with no expiry
         while opcode = read_opcode
           puts "in while loop in db section"
           puts "cursor at #{io.pos}"
