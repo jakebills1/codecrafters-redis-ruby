@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'pry'
+require_relative './entry'
 
 module Redis
   class NotAnRDBFile < StandardError; end
@@ -50,7 +50,7 @@ module Redis
             when :string
               value_len = read_int
               value = io.read(value_len)
-              db[key] = value
+              db[key] = Entry.new(value)
             end
           end
         end

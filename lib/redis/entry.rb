@@ -3,7 +3,7 @@
 module Redis
   class Entry
     attr_reader :value, :options
-    def initialize(value, options)
+    def initialize(value, options = {})
       @value = value
       @options = options
       @timestamp = current_time_ms
