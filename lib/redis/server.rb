@@ -13,22 +13,12 @@ module Redis
 
     def initialize(config)
       @config = config
-      # somehow, if the config has a dbfilename
-      # need to parse it, and inject it into the Storage hash
-      if config.dir && config.dbfilename
-        begin
-          parser = RDBParser.new [config.dir, config.dbfilename].join('/')
-          parser.parse
-          # only need to support single database right now
-          Storage.const_set 'DB', parser.data[0]
-        rescue Errno::ENOENT => e
-          # the tester might give a nonexisting file path
-          log e
-        end
-      end
       @port = config.port
       @server = TCPServer.new(@port)
       @selector = NIO::Selector.new
+      if config.dir && config.dbfilename
+        load_data
+      end
       trap('INT') { cleanup }
     end
 
@@ -48,6 +38,24 @@ module Redis
 
     private
     attr_reader :server, :port, :selector, :config
+
+    def load_data
+      rdb_file_path = [config.dir, config.dbfilename].join('/')
+      begin
+        parser = RDBParser.new rdb_file_path
+        parser.parse
+        # only need to support single database right now
+        Storage.const_set 'DB', parser.data[0]
+      rescue Errno::ENOENT => e
+        # the codecrafters tester might give a nonexisting file path
+        # might not want to ignore this error irl
+        log "error loading rdb file at #{rdb_file_path}: #{e}"
+      rescue NotAnRDBFile => e
+        log e
+        cleanup
+      end
+    end
+
 
     def accept_new_client
       client = server.accept

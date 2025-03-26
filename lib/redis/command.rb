@@ -56,7 +56,7 @@ module Redis
     end
 
     def value_not_required?
-      type == 'PING' || type == 'GET' || type == 'KEYS' || (type == 'CONFIG' && subtype != 'SET')
+      ['PING', 'GET', 'KEYS'].include?(type) || (type == 'CONFIG' && subtype != 'SET')
     end
 
     def value_required?
@@ -64,7 +64,7 @@ module Redis
     end
 
     def key_required?
-      type == 'CONFIG' || !key_not_required?
+      !key_not_required?
     end
 
     def subtype_required?
@@ -72,7 +72,7 @@ module Redis
     end
 
     def key_not_required?
-      !['SET', 'GET', 'KEYS'].include? type
+      !['SET', 'GET', 'KEYS', 'CONFIG'].include? type
     end
 
     def count_of_attrs

@@ -2,8 +2,10 @@
 require 'pry'
 
 module Redis
+  class NotAnRDBFile < StandardError; end
+
   class RDBParser
-    attr_reader :header, :metadata, :data
+    attr_reader :rdb_version, :metadata, :data
     def initialize(db_file_path)
       @db_file_path = db_file_path
       @metadata = {}
@@ -11,59 +13,42 @@ module Redis
       @io = File.open db_file_path, 'rb'
     end
 
-    def parse
-      # magic string and redis version number
-      @header = io.read(HEADER_BYTES)
-      # metadata
-      while (opcode = read_opcode) == METADATA_OPCODE
-        # length encoding based on 1byte read:
-        #   - when the 2 most significant bits are 00,
-        #   remaining bits are the length in bytes of
-        #   the next object in the stream
-        #   - when the 2 most significant bits are 11,
-        #   remaining bits indicate size of integer to follow
-        #     - 0: 8 bit
-        #     - 1: 16 bit
-        #     - 2: 32 bit
 
-        # don't think metadata keys can be anything but strings
-        key_len = io.read(1).unpack1('C')
+    def parse
+      # magic string
+      magic_str = io.read(MAGIC_STR_BYTES)
+      raise NotAnRDBFile("#{@db_file_path} is not rdb file") unless magic_str.start_with?('REDIS')
+
+      # rdb version is 4 bytes
+      @rdb_version = io.read(RDB_VERSION_BYTES)
+      # metadata
+      while (opcode = read_int) == OPCODES.fetch('AUX')
+        key_len = read_int
         key = io.read(key_len)
-        # values might not be encoded as strings
-        value = length_encoding
+        value = read_next_object
         metadata[key] = value
       end
       # databases
-      while opcode == DB_OPCODE
+      while opcode == OPCODES.fetch('SELECTDB')
         # database index
-        db_number = length_encoding
+        db_number = read_next_object
         db = {}
         # read past the resizedb info
-        opcode = read_opcode
-        puts "#{opcode} should be FB / 251"
-        length_encoding
-        # length_encoding
-        # next opcode indicates:
-        # - a kv pair with a ms expiry
-        # - a kv pair with a s expiry
-        # - a kv pair with no expiry
-        while opcode = read_opcode
-          puts "in while loop in db section"
-          puts "cursor at #{io.pos}"
-          puts "opcode was #{opcode}"
-          break if opcode.nil? || opcode == EOF_OPCODE # checksum follows
+        opcode = read_int
+        read_next_object
+        while opcode = read_int
+          break if opcode.nil? || opcode == OPCODES.fetch('EOF')
 
           case opcode
-          when EXPRY_MS_OPCODE # following k/v has expiry value in ms
-          when EXPRY_SECONDS_OPCODE # following k/v has expiry value in s
+          when OPCODES.fetch('EXPIRETIMEMS') # following k/v has expiry value in ms
+          when OPCODES.fetch('EXPIRETIME') # following k/v has expiry value in s
           else # following k/v has no expiry
             enc_type = encodings[opcode]
-            key_len = io.read(1).unpack1('C')
+            key_len = read_int
             key = io.read(key_len)
-            puts enc_type, key, key_len
             case enc_type
             when :string
-              value_len = io.read(1).unpack1('C')
+              value_len = read_int
               value = io.read(value_len)
               db[key] = value
             end
@@ -71,29 +56,39 @@ module Redis
         end
         data << db
       end
-    rescue NoMethodError => e
-      puts "At byte offset #{io.pos}"
-      puts e.backtrace
     end
 
     private
     attr_reader :io
 
-    METADATA_OPCODE = 250
-    DB_OPCODE = 254
-    EOF_OPCODE = 255
-    EXPRY_SECONDS_OPCODE = 253
-    EXPRY_MS_OPCODE = 252
-    HEADER_BYTES = 9
+    OPCODES = {
+      'AUX' => 250,
+      'EOF' => 255,
+      'SELECTDB' => 254,
+      'EXPIRETIME' => 253,
+      'EXPIRETIMEMS' => 252,
+      'RESIZEDB' => 251
+    }
+    MAGIC_STR_BYTES = 5
+    RDB_VERSION_BYTES = 4
 
-    def read_opcode
+    def read_int
       raw = io.read(1)
       return unless raw # read can return nil if EOF was encountered
 
       raw.unpack1('C')
     end
 
-    def length_encoding
+    def read_next_object
+      # length encoding based on 1byte read:
+      #   - when the 2 most significant bits are 00,
+      #   remaining bits are the length in bytes of
+      #   the next object in the stream
+      #   - when the 2 most significant bits are 11,
+      #   remaining bits indicate size of integer to follow
+      #     - 0: 8 bit
+      #     - 1: 16 bit
+      #     - 2: 32 bit
       value_len_encoding = io.read(1).ord
       msb = value_len_encoding >> 6 # get 2 most significant bits
       case msb
