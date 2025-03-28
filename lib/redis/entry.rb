@@ -2,20 +2,28 @@
 
 module Redis
   class Entry
-    attr_reader :value, :options
-    def initialize(value, options = {})
+    attr_accessor :expires_at
+    attr_reader :value, :options, :timestamp
+    def initialize(value)
       @value = value
-      @options = options
       @timestamp = current_time_ms
     end
 
+    def set_expiry(expires_in)
+      return unless expires_in
+
+      @expires_at = expires_in.to_i + timestamp
+    end
+
     def expired?
-      false unless options[:px]
-      (current_time_ms - timestamp) > options[:px].to_i
+      return false unless expires_at
+      # problem: seems like px is either used to say
+      # - expire if after this time
+      # - expire after this number of ms
+      current_time_ms > expires_at
     end
 
     private
-    attr_reader :timestamp
     def current_time_ms
       t = Time.now
       just_ms = t.nsec / 1_000_000

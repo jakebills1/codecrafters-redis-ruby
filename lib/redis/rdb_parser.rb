@@ -1,4 +1,3 @@
-# todo: difference between length encoded ints, length encoded strings, string encoded ints
 # frozen_string_literal: true
 require_relative './entry'
 require 'pry'
@@ -38,26 +37,41 @@ module Redis
         while opcode = read_int
           break if opcode.nil? || opcode == OPCODES.fetch('EOF')
 
-          case opcode
-          when OPCODES.fetch('EXPIRETIMEMS') # following k/v has expiry value in ms
-          when OPCODES.fetch('EXPIRETIME') # following k/v has expiry value in s
-          else # following k/v has no expiry
-            enc_type = encodings[opcode]
-            key_len = read_int
-            key = io.read(key_len)
-            case enc_type
-            when :string
-              value_len = read_int
-              value = io.read(value_len)
-              db[key] = Entry.new(value)
-            end
+          if opcode == OPCODES.fetch('EXPIRETIMEMS') # following k/v has expiry value in ms
+            # expiry times are designated widths
+            expiry = io.read(8).unpack1('Q')
+            enc_value_flag = read_int
+          elsif opcode == OPCODES.fetch('EXPIRETIME') # following k/v has expiry value in s
+            expiry = io.read(4).unpack1('L')
+            enc_value_flag = read_int
+          else
+            expiry = nil
+            enc_value_flag = opcode
           end
+          read_key_value_pair(db, enc_value_flag, expiry)
         end
         data << db
       end
     end
 
     private
+
+    def read_key_value_pair(db, opcode, expiry)
+      enc_type = encodings[opcode]
+      key_len = read_int
+      key = io.read(key_len)
+      case enc_type
+      when :string
+        value_len = read_int
+        value = io.read(value_len)
+        entry = Entry.new(value)
+        entry.expires_at = expiry
+        db[key] = entry
+      else
+        raise "#{opcode} does not map to a registered encoding type"
+      end
+    end
+
     attr_reader :io
 
     # opcodes are always 1 byte
@@ -65,8 +79,8 @@ module Redis
       'AUX' => 250, # 0xFA
       'EOF' => 255, # 0xFF
       'SELECTDB' => 254, # 0xFE
-      'EXPIRETIME' => 253,
-      'EXPIRETIMEMS' => 252,
+      'EXPIRETIME' => 253, # 0xFD
+      'EXPIRETIMEMS' => 252, # 0xFC
       'RESIZEDB' => 251 # 0xFB
     }
     MAGIC_STR_BYTES = 5

@@ -5,7 +5,7 @@ module Storage
   DB ||= {}
   def get(key)
     entry = DB[key]
-    if entry && entry.options[:px]
+    if entry
       return entry.value unless entry.expired?
 
       set(key, nil)
@@ -16,7 +16,9 @@ module Storage
   end
 
   def set(key, value, options = {})
-    DB[key] = ::Redis::Entry.new(value, options)
+    entry = ::Redis::Entry.new(value)
+    entry.set_expiry options[:px]
+    DB[key] = entry
   end
 
   def scan(search_term)
