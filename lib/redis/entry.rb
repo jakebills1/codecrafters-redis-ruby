@@ -17,9 +17,7 @@ module Redis
 
     def expired?
       return false unless expires_at
-      # problem: seems like px is either used to say
-      # - expire if after this time
-      # - expire after this number of ms
+      
       current_time_ms > expires_at
     end
 
