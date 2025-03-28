@@ -1,6 +1,7 @@
+# todo: difference between length encoded ints, length encoded strings, string encoded ints
 # frozen_string_literal: true
 require_relative './entry'
-
+require 'pry'
 module Redis
   class NotAnRDBFile < StandardError; end
 
@@ -15,27 +16,25 @@ module Redis
 
 
     def parse
-      # magic string
       magic_str = io.read(MAGIC_STR_BYTES)
       raise NotAnRDBFile("#{@db_file_path} is not rdb file") unless magic_str.start_with?('REDIS')
 
-      # rdb version is 4 bytes
       @rdb_version = io.read(RDB_VERSION_BYTES)
       # metadata
       while (opcode = read_int) == OPCODES.fetch('AUX')
-        key_len = read_int
-        key = io.read(key_len)
-        value = read_next_object
+        key = read_object
+        value = read_object
         metadata[key] = value
       end
       # databases
       while opcode == OPCODES.fetch('SELECTDB')
-        # database index
-        db_number = read_next_object
+        db_number = read_length_encoded_int
         db = {}
-        # read past the resizedb info
+        # resizedb section
         opcode = read_int
-        read_next_object
+        # db size : length encoded ints
+        hash_table_size = read_length_encoded_int
+        expiry_table_size = read_length_encoded_int
         while opcode = read_int
           break if opcode.nil? || opcode == OPCODES.fetch('EOF')
 
@@ -61,13 +60,14 @@ module Redis
     private
     attr_reader :io
 
+    # opcodes are always 1 byte
     OPCODES = {
-      'AUX' => 250,
-      'EOF' => 255,
-      'SELECTDB' => 254,
+      'AUX' => 250, # 0xFA
+      'EOF' => 255, # 0xFF
+      'SELECTDB' => 254, # 0xFE
       'EXPIRETIME' => 253,
       'EXPIRETIMEMS' => 252,
-      'RESIZEDB' => 251
+      'RESIZEDB' => 251 # 0xFB
     }
     MAGIC_STR_BYTES = 5
     RDB_VERSION_BYTES = 4
@@ -79,30 +79,66 @@ module Redis
       raw.unpack1('C')
     end
 
-    def read_next_object
-      # length encoding based on 1byte read:
-      #   - when the 2 most significant bits are 00,
-      #   remaining bits are the length in bytes of
-      #   the next object in the stream
-      #   - when the 2 most significant bits are 11,
-      #   remaining bits indicate size of integer to follow
-      #     - 0: 8 bit
-      #     - 1: 16 bit
-      #     - 2: 32 bit
-      value_len_encoding = io.read(1).ord
-      msb = value_len_encoding >> 6 # get 2 most significant bits
+    def read_length_encoded_int
+      read_length[0]
+    end
+
+    def read_object
+      length, object_type = read_length
+      bytes = io.read(length)
+      return bytes unless object_type == :integer
+
+      template = case length
+                 when 1
+                   'C'
+                 when 2
+                   'S'
+                 else
+                   'L'
+                 end
+      bytes.unpack1(template)
+    end
+
+    def read_length
+      # length encoding:
+      # Read one byte from the stream, compare the two most significant bits:
+      #
+      # Bits	How to parse
+      # 00	  The remaining 6 bits represent the length
+      # 01	  Read one additional byte. The combined 14 bits represent the length
+      # 10	  Discard the remaining 6 bits. The next 4 bytes from the stream represent the length
+      # 11	  Variable *
+      #
+      # * the decimal value of the remaining six bits indicate the number of bytes to read to get the length
+      #
+      # Dec   Bytes to Read
+      # 0     1
+      # 1     2
+      # 2     4
+      raw_read = io.read(1)
+      flag = raw_read.ord
+      msb = flag >> 6 # get 2 most significant bits
       case msb
       when 0b00
-        io.read(value_len_encoding)
-      when 0b11
-        case value_len_encoding & 0b00111111 # get 6 least significant bits
-        when 0 # indicates 8 bit integer value follows
-          io.read(1).unpack1('C') # 8 bit = 1 byte
-        when 1
-          io.read(2).unpack1('S')
-        when 2
-          io.read(4).unpack1('L')
-        end
+        [flag, :string]
+      when 0b01
+        raw_read << io.read(1)
+        [raw_read.unpack1('S'), :string]
+      when 0b10
+        [io.read(4).unpack1('L'), :string]
+      else
+        [integer_length_bytes(flag), :integer]
+      end
+    end
+
+    def integer_length_bytes(flag)
+      case flag & 0b00111111 # get 6 least significant bits
+      when 0 # indicates 8 bit integer value follows
+        1
+      when 1
+        2
+      when 2
+        4
       end
     end
 

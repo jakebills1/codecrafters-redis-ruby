@@ -46,6 +46,8 @@ module Redis
         parser.parse
         # only need to support single database right now
         Storage.const_set 'DB', parser.data[0]
+        log parser.data
+        log Storage.const_get 'DB'
       rescue Errno::ENOENT => e
         # the codecrafters tester might give a nonexisting file path
         # might not want to ignore this error irl
