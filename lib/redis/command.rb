@@ -1,4 +1,3 @@
-# frozen_string_literal: true
 require_relative './encoder'
 require_relative './storage'
 require_relative './logger'
@@ -49,7 +48,17 @@ module Redis
         as_bulk_array(*matching_entries)
       when 'INFO'
         # hardcoded for now
-        as_bulk_string("role:#{config.replicaof ? 'slave' : 'master'}")
+        info = ""
+        {
+          role: config.replicaof ? 'slave' : 'master',
+          master_replid: '8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb',
+          master_repl_offset: 0
+        }.each do |k, v|
+          info << k.to_s
+          info << ':'
+          info << v.to_s
+        end
+        as_bulk_string info
       end
     end
 
