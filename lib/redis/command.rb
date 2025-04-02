@@ -49,7 +49,7 @@ module Redis
         as_bulk_array(*matching_entries)
       when 'INFO'
         # hardcoded for now
-        as_bulk_string('role:master')
+        as_bulk_string("role:#{config.replicaof ? 'slave' : 'master'}")
       end
     end
 

@@ -9,7 +9,7 @@ module Redis
     DEFAULT_PORT = 6379
     include Logger
 
-    attr_reader :port, :dir, :dbfilename
+    attr_reader :port, :dir, :dbfilename, :replicaof
     def initialize(cl_args)
       @cl_args = cl_args
     end
@@ -24,6 +24,9 @@ module Redis
         end
         parser.on("--port PORT") do |port|
           @port = port.to_i
+        end
+        parser.on("--replicaof MASTER") do |master|
+          @replicaof = master
         end
       end.parse(cl_args)
       @port ||= DEFAULT_PORT
