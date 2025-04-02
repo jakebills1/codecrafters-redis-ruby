@@ -1,28 +1,36 @@
 # frozen_string_literal: true
+require_relative 'logger'
+require 'optparse'
+
+options = {}
 
 module Redis
   class Configuration
+    DEFAULT_PORT = 6379
     include Logger
 
     attr_reader :port, :dir, :dbfilename
-    def initialize(port, cl_args)
-      @port = port
+    def initialize(cl_args)
       @cl_args = cl_args
     end
 
     def configure!
-      cl_args.each_slice(2) do |key, value|
-        case key
-        when '--dir'
-          @dir = value
-        when '--dbfilename'
-          @dbfilename = value
-        else
-          raise ConfigurationError, "unrecognized command line configuration. key = #{key}, value =  #{value}"
+      OptionParser.new do |parser|
+        parser.on("--dir DIR") do |dir|
+          @dir = dir
         end
-      end
+        parser.on("--dbfilename DBNAME") do |dbfilename|
+          @dbfilename = dbfilename
+        end
+        parser.on("--port PORT") do |port|
+          @port = port.to_i
+        end
+      end.parse(cl_args)
+      @port ||= DEFAULT_PORT
       log "configured redis server. port = #{port}, dir = #{dir}, dbfilename = #{dbfilename}"
       self
+    rescue OptionParser::InvalidOption
+      raise ConfigurationError
     end
 
     private
