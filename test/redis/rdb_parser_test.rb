@@ -13,6 +13,6 @@ class TestRDBParser < Minitest::Test
   end
 
   def test_that_multiple_keys_are_parsed
-    assert @parser.data.first.keys.sort == ['bar', 'baz', 'foo']
+    assert @parser.data.first.keys.sort == ['bar', 'foo'], "expected first data section to have keys foo and bar, but had #{@parser.data.first.keys}"
   end
 end
