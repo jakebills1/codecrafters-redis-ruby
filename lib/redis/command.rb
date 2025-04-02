@@ -48,17 +48,15 @@ module Redis
         as_bulk_array(*matching_entries)
       when 'INFO'
         # hardcoded for now
-        info = ""
+        info = []
         {
           role: config.replicaof ? 'slave' : 'master',
           master_replid: '8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb',
           master_repl_offset: 0
         }.each do |k, v|
-          info << k.to_s
-          info << ':'
-          info << v.to_s
+          info << [k.to_s, v.to_s].join(':')
         end
-        as_bulk_string info
+        as_bulk_string info.join("\n")
       end
     end
 
