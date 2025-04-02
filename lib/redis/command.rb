@@ -10,7 +10,7 @@ module Redis
     include Storage
     include Logger
 
-    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET', 'CONFIG', 'KEYS'].freeze
+    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET', 'CONFIG', 'KEYS', 'INFO'].freeze
     IMPLEMENTED_OPTIONS = ['px']
     attr_accessor :length, :type, :key, :value, :options, :pending_option_key, :subtype
 
@@ -47,6 +47,9 @@ module Redis
       when 'KEYS'
         matching_entries = scan(key)
         as_bulk_array(*matching_entries)
+      when 'INFO'
+        # hardcoded for now
+        as_bulk_string('role:master')
       end
     end
 
@@ -56,7 +59,7 @@ module Redis
     end
 
     def value_not_required?
-      ['PING', 'GET', 'KEYS'].include?(type) || (type == 'CONFIG' && subtype != 'SET')
+      ['PING', 'GET', 'KEYS', 'INFO'].include?(type) || (type == 'CONFIG' && subtype != 'SET')
     end
 
     def value_required?
