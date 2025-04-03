@@ -1,9 +1,12 @@
 require "minitest/autorun"
+
 require_relative '../../lib/redis/command'
+require_relative '../../lib/redis/configuration'
 
 describe ::Redis::Command do
   before do
     @command = ::Redis::Command.new
+    @config = ::Redis::Configuration.new([]).configure!
   end
 
   describe '#is_implemented?' do
@@ -54,21 +57,21 @@ describe ::Redis::Command do
     describe 'when the type should respond with a simple string encoding' do
       it 'returns a simple string encoding' do
         @command.type = 'PING'
-        assert @command.encoded_response.start_with? '+'
+        assert @command.encoded_response(@config).start_with? '+'
       end
     end
     describe 'when the type should respond with a bulk string encoding' do
       it 'returns a bulk string encoding' do
         @command.type = 'ECHO'
         @command.value = 'hey'
-        assert @command.encoded_response.start_with? '$'
+        assert @command.encoded_response(@config).start_with? '$'
       end
     end
     describe 'when the type should respond with a null string encoding' do
       it 'returns a null string' do
         @command.type = 'GET'
         @command.value = 'foo'
-        assert @command.encoded_response.start_with? '$-1'
+        assert @command.encoded_response(@config).start_with? '$-1'
       end
     end
     describe 'when the entry has expired' do
@@ -82,7 +85,7 @@ describe ::Redis::Command do
         get_command = ::Redis::Command.new
         get_command.type = 'GET'
         get_command.key = 'foo'
-        assert get_command.encoded_response.start_with? '$-1'
+        assert get_command.encoded_response(@config).start_with? '$-1'
       end
     end
     describe 'when the entry has not expired' do
@@ -96,7 +99,7 @@ describe ::Redis::Command do
         sleep 1
         get_command.type = 'GET'
         get_command.key = 'foo'
-        assert get_command.encoded_response == "$3\r\nbar\r\n"
+        assert get_command.encoded_response(@config) == "$3\r\nbar\r\n"
       end
     end
   end

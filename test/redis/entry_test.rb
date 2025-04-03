@@ -3,9 +3,11 @@ require_relative '../../lib/redis/entry'
 
 class TestEntry < Minitest::Test
   def setup
-    @entry = ::Redis::Entry.new('bar', {})
-    @with_expiry = ::Redis::Entry.new('foo', { px: 1 })
-    @with_long_expiry = ::Redis::Entry.new('foo', { px: 1_000_000 })
+    @entry = ::Redis::Entry.new('bar')
+    @with_expiry = ::Redis::Entry.new('foo')
+    @with_expiry.set_expiry(1)
+    @with_long_expiry = ::Redis::Entry.new('foo')
+    @with_long_expiry.set_expiry(1_000_000)
   end
 
   def test_that_entries_without_expiry_do_not_expire

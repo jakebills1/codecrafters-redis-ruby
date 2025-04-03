@@ -3,7 +3,7 @@
 module Redis
   class Entry
     attr_accessor :expires_at
-    attr_reader :value, :options, :timestamp
+    attr_reader :value, :timestamp
     def initialize(value)
       @value = value
       @timestamp = current_time_ms
