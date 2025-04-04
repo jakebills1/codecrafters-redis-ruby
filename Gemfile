@@ -17,7 +17,7 @@ gem "minitest", "~> 5.25"
 gem "pry", "~> 0.15.2"
 
 group :development do
-  gem 'rb-readline'
-  gem 'guard' 
-  gem 'guard-minitest'
+  # gem 'rb-readline'
+  # gem 'guard'
+  # gem 'guard-minitest'
 end
