@@ -60,6 +60,13 @@ module Redis
       end
     end
 
+    def encode_self
+      case type
+      when 'PING'
+        as_bulk_array 'PING'
+      end
+    end
+
     def set_option(option_key, value)
       options[option_key.to_sym] = value
       @pending_option_key = nil

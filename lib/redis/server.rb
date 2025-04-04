@@ -1,11 +1,12 @@
 require "socket"
 require "nio4r"
-require_relative './logger'
-require_relative './reader'
-require_relative './command_builder'
-require_relative './bad_read_error'
-require_relative './storage'
-require_relative './rdb_parser'
+require_relative 'logger'
+require_relative 'reader'
+require_relative 'command_builder'
+require_relative 'bad_read_error'
+require_relative 'storage'
+require_relative 'rdb_parser'
+require_relative 'client'
 
 module Redis
   class Server
@@ -18,6 +19,12 @@ module Redis
       @selector = NIO::Selector.new
       if config.dir && config.dbfilename
         load_data
+      end
+      if config.replicaof
+        client = Client.new(config.leader_host, config.leader_port)
+        command = Command.new
+        command.type = 'PING'
+        client.send_command command
       end
       trap('INT') { cleanup }
     end
@@ -73,6 +80,8 @@ module Redis
       #   2. read n + 2 bytes and strip off \r\n
       #   3. pass those bytes into parser
       # 3. once command has read m bulk strings, it is complete
+      #
+      # todo: bytes written need to be added to the offset
       command = command_builder.build
       monitor.interests = :w
       monitor.value = proc { respond(monitor, command) }
