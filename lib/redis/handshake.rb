@@ -12,6 +12,7 @@ module Redis
       client.send_command ping
       client.send_command repl_conf('listening-port', listening_port)
       client.send_command repl_conf('capa', 'psync2')
+      client.send_command psync
     end
 
     private
@@ -28,6 +29,12 @@ module Redis
       command.type = 'REPLCONF'
       command.key = key
       command.value = value
+      command
+    end
+
+    def psync
+      command = Command.new
+      command.type = 'PSYNC'
       command
     end
   end

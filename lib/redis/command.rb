@@ -9,7 +9,7 @@ module Redis
     include Storage
     include Logger
 
-    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET', 'CONFIG', 'KEYS', 'INFO', 'REPLCONF'].freeze
+    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET', 'CONFIG', 'KEYS', 'INFO', 'REPLCONF', 'PSYNC'].freeze
     IMPLEMENTED_OPTIONS = ['px']
     attr_accessor :length, :type, :key, :value, :options, :pending_option_key, :subtype
 
@@ -66,6 +66,8 @@ module Redis
         as_bulk_array type
       when 'REPLCONF'
         as_bulk_array type, key, value
+      when 'PSYNC'
+        as_bulk_array type, '?', '-1'
       end
     end
 
