@@ -1,6 +1,6 @@
 require "minitest/autorun"
 
-require_relative '../../lib/redis/base'
+require_relative '../../lib/redis/commands/base'
 require_relative '../../lib/redis/configuration'
 
 describe ::Redis::Base do
