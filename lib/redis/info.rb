@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Redis
-  class Info < Command
+  class Info < Base
     def type
       'INFO'
     end

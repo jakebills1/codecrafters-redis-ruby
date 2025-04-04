@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Redis
-  class Keys < Command
+  class Keys < Base
     def type
       'KEYS'
     end

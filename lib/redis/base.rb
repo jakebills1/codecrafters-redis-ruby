@@ -4,7 +4,7 @@ require_relative './logger'
 
 module Redis
   class CommandTypeNotImplementedError < StandardError; end
-  class Command
+  class Base
     include Encoder
     include Storage
     include Logger

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Redis
-  class Get < Command
+  class Get < Base
     def type
       'GET'
     end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
-require_relative 'command'
+require_relative 'base'
 
 module Redis
-  class Ping < Command
+  class Ping < Base
     def type
       'PING'
     end

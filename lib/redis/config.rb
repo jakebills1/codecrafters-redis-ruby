@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Redis
-  class Config < Command
+  class Config < Base
     def type
       'CONFIG'
     end

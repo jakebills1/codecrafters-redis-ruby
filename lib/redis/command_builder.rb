@@ -1,4 +1,4 @@
-require_relative 'command'
+require_relative 'base'
 require_relative 'command_state'
 require_relative 'logger'
 require_relative 'bad_read_error'
@@ -18,7 +18,7 @@ module Redis
     include Logger
     def initialize(reader)
       @reader = reader
-      @command = Command.new # starts abstract, get specific klass from type
+      @command = Base.new # starts abstract, get specific klass from type
       @state = CommandState.new
     end
 

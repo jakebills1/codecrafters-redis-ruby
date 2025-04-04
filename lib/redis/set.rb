@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Redis
-  class Set < Command
+  class Set < Base
     def type
       'SET'
     end

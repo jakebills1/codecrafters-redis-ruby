@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Redis
-  class Psync < Command
+  class Psync < Base
     def type
       'PSYNC'
     end
@@ -13,7 +13,7 @@ module Redis
     def encoded_response(config)
       as_simple_string 'OK'
     end
-    
+
     def key_required?
       false
     end

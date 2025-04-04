@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Redis
-  class Echo < Command
+  class Echo < Base
     def type
       'ECHO'
     end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Redis
-  class Replconf < Command
+  class Replconf < Base
     def type
       'REPLCONF'
     end

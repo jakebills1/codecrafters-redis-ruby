@@ -1,11 +1,11 @@
 require "minitest/autorun"
 
-require_relative '../../lib/redis/command'
+require_relative '../../lib/redis/base'
 require_relative '../../lib/redis/configuration'
 
-describe ::Redis::Command do
+describe ::Redis::Base do
   before do
-    @command = ::Redis::Command.new
+    @command = ::Redis::Base.new
     @config = ::Redis::Configuration.new(['--dir', 'tmp']).configure!
   end
 
@@ -96,7 +96,7 @@ describe ::Redis::Command do
         @command.set_option('px', '10')
         @command.persist!
         sleep 1
-        get_command = ::Redis::Command.new
+        get_command = ::Redis::Base.new
         get_command.type = 'GET'
         get_command.key = 'foo'
         assert get_command.encoded_response(@config).start_with? '$-1'
@@ -109,7 +109,7 @@ describe ::Redis::Command do
         @command.value = 'bar'
         @command.set_option('px', '10000')
         @command.persist!
-        get_command = ::Redis::Command.new
+        get_command = ::Redis::Base.new
         sleep 1
         get_command.type = 'GET'
         get_command.key = 'foo'
