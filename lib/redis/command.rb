@@ -9,7 +9,7 @@ module Redis
     include Storage
     include Logger
 
-    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET', 'CONFIG', 'KEYS', 'INFO'].freeze
+    IMPLEMENTED_TYPES = ['PING', 'ECHO', 'SET', 'GET', 'CONFIG', 'KEYS', 'INFO', 'REPLCONF'].freeze
     IMPLEMENTED_OPTIONS = ['px']
     attr_accessor :length, :type, :key, :value, :options, :pending_option_key, :subtype
 
@@ -63,7 +63,9 @@ module Redis
     def encode_self
       case type
       when 'PING'
-        as_bulk_array 'PING'
+        as_bulk_array type
+      when 'REPLCONF'
+        as_bulk_array type, key, value
       end
     end
 

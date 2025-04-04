@@ -6,6 +6,7 @@ require_relative 'command_builder'
 require_relative 'bad_read_error'
 require_relative 'storage'
 require_relative 'rdb_parser'
+require_relative 'handshake'
 require_relative 'client'
 
 module Redis
@@ -21,10 +22,10 @@ module Redis
         load_data
       end
       if config.replicaof
-        client = Client.new(config.leader_host, config.leader_port)
-        command = Command.new
-        command.type = 'PING'
-        client.send_command command
+        Handshake.new(
+          Client.new(config.leader_host, config.leader_port),
+          config.port.to_s
+        ).call
       end
       trap('INT') { cleanup }
     end
