@@ -1,5 +1,7 @@
 # frozen_string_literal: true
-require_relative 'command'
+require_relative 'ping'
+require_relative 'replconf'
+require_relative 'psync'
 
 module Redis
   class Handshake
@@ -19,22 +21,19 @@ module Redis
     attr_reader :client, :listening_port
 
     def ping
-      command = Command.new
-      command.type = 'PING'
+      command = Ping.new
       command
     end
 
     def repl_conf(key, value)
-      command = Command.new
-      command.type = 'REPLCONF'
+      command = Replconf.new
       command.key = key
       command.value = value
       command
     end
 
     def psync
-      command = Command.new
-      command.type = 'PSYNC'
+      command = Psync.new
       command
     end
   end

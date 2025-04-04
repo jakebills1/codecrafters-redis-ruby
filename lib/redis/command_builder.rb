@@ -1,14 +1,24 @@
-require_relative './command'
-require_relative './command_state'
-require_relative './logger'
-require_relative './bad_read_error'
+require_relative 'command'
+require_relative 'command_state'
+require_relative 'logger'
+require_relative 'bad_read_error'
+require_relative 'command_not_implemented'
+require_relative 'ping'
+require_relative 'echo'
+require_relative 'set'
+require_relative 'get'
+require_relative 'config'
+require_relative 'keys'
+require_relative 'info'
+require_relative 'replconf'
+require_relative 'psync'
 
 module Redis
   class CommandBuilder
     include Logger
     def initialize(reader)
       @reader = reader
-      @command = Command.new
+      @command = Command.new # starts abstract, get specific klass from type
       @state = CommandState.new
     end
 
@@ -22,7 +32,11 @@ module Redis
           end
           command.length = command_length
         when :read_type
-          command.type = reader.read_bulk_string
+          type = reader.read_bulk_string
+          length = command.length
+          @command = command_klass(type).new
+          command.length = length
+          command.type = type
         when :read_subtype
           command.subtype = reader.read_bulk_string
         when :read_key
@@ -50,5 +64,30 @@ module Redis
 
     private
     attr_reader :reader, :command, :state
+
+    def command_klass(type)
+      case type
+      when 'PING'
+        Ping
+      when 'ECHO'
+        Echo
+      when 'SET'
+        Set
+      when 'GET'
+        Get
+      when 'CONFIG'
+        Config
+      when 'KEYS'
+        Keys
+      when 'INFO'
+        Info
+      when 'REPLCONF'
+        Replconf
+      when 'PSYNC'
+        Psync
+      else
+        raise CommandNotImplemented
+      end
+    end
   end
 end

@@ -29,71 +29,29 @@ module Redis
       length && (length == count_of_attrs)
     end
 
-    def encoded_response(config)
-      case type
-      when 'PING'
-        as_simple_string('PONG')
-      when 'SET'
-        as_simple_string('OK')
-      when 'ECHO'
-        as_bulk_string(value)
-      when 'GET'
-        retrieved_value = get(key)
-        retrieved_value ? as_bulk_string(retrieved_value) : null_string
-      when 'CONFIG'
-        # hardcoding this to be for CONFIG GET dir for now
-        as_bulk_array(key, config.dir)
-      when 'KEYS'
-        matching_entries = scan(key)
-        as_bulk_array(*matching_entries)
-      when 'INFO'
-        # hardcoded for now
-        info = []
-        {
-          role: config.replicaof ? 'slave' : 'master',
-          master_replid: '8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb',
-          master_repl_offset: 0
-        }.each do |k, v|
-          info << [k.to_s, v.to_s].join(':')
-        end
-        as_bulk_string info.join("\n")
-      end
-    end
-
-    def encode_self
-      case type
-      when 'PING'
-        as_bulk_array type
-      when 'REPLCONF'
-        as_bulk_array type, key, value
-      when 'PSYNC'
-        as_bulk_array type, '?', '-1'
-      end
-    end
-
     def set_option(option_key, value)
       options[option_key.to_sym] = value
       @pending_option_key = nil
     end
 
     def value_not_required?
-      ['PING', 'GET', 'KEYS', 'INFO'].include?(type) || (type == 'CONFIG' && subtype != 'SET')
+      !value_required?
     end
 
     def value_required?
-      !value_not_required?
+      false
     end
 
     def key_required?
-      !key_not_required?
+      false
     end
 
     def subtype_required?
-      type == 'CONFIG'
+      false
     end
 
     def key_not_required?
-      !['SET', 'GET', 'KEYS', 'CONFIG'].include? type
+      !key_required?
     end
 
     def count_of_attrs
@@ -105,10 +63,7 @@ module Redis
     end
 
     def persist!
-      return unless type == 'SET'
-
-      # puts key, value, options
-      set(key, value, options)
+      # will be overridden in SET
     end
 
     def remaining_option_count
@@ -125,6 +80,10 @@ module Redis
       else
         raise CommandTypeNotImplementedError, "#{type_value} not an implemented command"
       end
+    end
+
+    def encoded_response(config)
+
     end
   end
 end
