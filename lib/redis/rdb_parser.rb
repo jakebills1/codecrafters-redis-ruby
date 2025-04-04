@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-require_relative './entry'
 require 'pry'
 module Redis
   class NotAnRDBFile < StandardError; end

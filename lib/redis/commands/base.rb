@@ -86,6 +86,31 @@ module Redis
       def encoded_response(config)
 
       end
+
+      def self.type_to_klass(type)
+        case type
+        when 'PING'
+          Ping
+        when 'ECHO'
+          Echo
+        when 'SET'
+          Set
+        when 'GET'
+          Get
+        when 'CONFIG'
+          Config
+        when 'KEYS'
+          Keys
+        when 'INFO'
+          Info
+        when 'REPLCONF'
+          Replconf
+        when 'PSYNC'
+          Psync
+        else
+          raise NotImplemented
+        end
+      end
     end
   end
 end

@@ -1,24 +1,14 @@
 require_relative 'command_state'
 require_relative 'logger'
 require_relative 'bad_read_error'
-require_relative 'commands/base'
-require_relative 'commands/not_implemented'
-require_relative 'commands/ping'
-require_relative 'commands/echo'
-require_relative 'commands/set'
-require_relative 'commands/get'
-require_relative 'commands/config'
-require_relative 'commands/keys'
-require_relative 'commands/info'
-require_relative 'commands/replconf'
-require_relative 'commands/psync'
+
+Dir[File.join(__dir__, 'commands', '*.rb')].each { |file| require_relative file }
 
 module Redis
   class CommandBuilder
     include Logger
     def initialize(reader)
       @reader = reader
-      @command = Commands::Base.new # starts abstract, get specific klass from type
       @state = CommandState.new
     end
 
@@ -30,13 +20,11 @@ module Redis
           if command_length < 1
             raise BadReadError
           end
-          command.length = command_length
+          @length = command_length
         when :read_type
           type = reader.read_bulk_string
-          length = command.length
-          @command = command_klass(type).new
+          @command = Commands::Base.type_to_klass(type).new
           command.length = length
-          command.type = type
         when :read_subtype
           command.subtype = reader.read_bulk_string
         when :read_key
@@ -63,31 +51,6 @@ module Redis
     end
 
     private
-    attr_reader :reader, :command, :state
-
-    def command_klass(type)
-      case type
-      when 'PING'
-        Commands::Ping
-      when 'ECHO'
-        Commands::Echo
-      when 'SET'
-        Commands::Set
-      when 'GET'
-        Commands::Get
-      when 'CONFIG'
-        Commands::Config
-      when 'KEYS'
-        Commands::Keys
-      when 'INFO'
-        Commands::Info
-      when 'REPLCONF'
-        Commands::Replconf
-      when 'PSYNC'
-        Commands::Psync
-      else
-        raise Commands::NotImplemented
-      end
-    end
+    attr_reader :reader, :command, :state, :length
   end
 end

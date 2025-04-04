@@ -1,5 +1,6 @@
 require 'socket'
-require_relative './logger'
+require_relative 'logger'
+
 module Redis
   class Reader
     include Logger
