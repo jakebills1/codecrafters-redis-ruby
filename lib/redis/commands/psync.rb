@@ -12,7 +12,7 @@ module Redis
       end
 
       def encoded_response(config)
-        as_simple_string 'OK'
+        as_simple_string "FULLRESYNC #{config.master_replid} #{config.master_repl_offset}"
       end
 
       def key_required?
