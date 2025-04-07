@@ -7,8 +7,10 @@ Dir[File.join(__dir__, 'commands', '*.rb')].each { |file| require_relative file 
 module Redis
   class CommandBuilder
     include Logger
-    def initialize(reader)
+    def initialize(reader, conn, config)
       @reader = reader
+      @conn = conn
+      @config = config
       @state = CommandState.new
     end
 
@@ -41,7 +43,10 @@ module Redis
         state.transition! command
       end
 
-      command.persist!
+      # idea: this is a side affect that some comamnds have like:
+      # - SET: save the value
+      # - PSYNC: potentially send the rdb file
+      command.perform_side_effects! conn, config
       command
     end
 
@@ -51,6 +56,6 @@ module Redis
     end
 
     private
-    attr_reader :reader, :command, :state, :length
+    attr_reader :reader, :command, :state, :length, :conn, :config
   end
 end

@@ -18,7 +18,7 @@ module Redis
         true
       end
 
-      def persist!
+      def perform_side_effects!(conn, config)
         set(key, value, options)
       end
     end

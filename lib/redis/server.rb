@@ -71,7 +71,7 @@ module Redis
       client = server.accept
       log "accepted new client"
       monitor = selector.register(client, :r)
-      monitor.value = proc { read_command(monitor, CommandBuilder.new(Reader.new(monitor.io))) }
+      monitor.value = proc { read_command(monitor, CommandBuilder.new(Reader.new(monitor.io), monitor.io, config)) }
     end
 
     def read_command(monitor, command_builder)
@@ -101,7 +101,7 @@ module Redis
       log "writing response to command #{command.type}: #{command.encoded_response(config)}"
       monitor.io.write_nonblock(command.encoded_response(config))
       monitor.interests = :r
-      monitor.value = proc { read_command(monitor, CommandBuilder.new(Reader.new(monitor.io))) }
+      monitor.value = proc { read_command(monitor, CommandBuilder.new(Reader.new(monitor.io), monitor.io, config)) }
     rescue IO::WaitWritable
     end
 

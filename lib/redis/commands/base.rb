@@ -63,8 +63,7 @@ module Redis
         count + options.keys.size
       end
 
-      def persist!
-        # will be overridden in SET
+      def perform_side_effects!(conn, config)
       end
 
       def remaining_option_count
