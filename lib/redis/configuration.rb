@@ -1,15 +1,21 @@
 # frozen_string_literal: true
-require_relative 'logger'
 require 'optparse'
-
-options = {}
+require 'random/formatter'
+require_relative 'logger'
 
 module Redis
   class Configuration
     DEFAULT_PORT = 6379
     include Logger
 
-    attr_reader :port, :dir, :dbfilename, :replicaof, :leader_host, :leader_port
+    attr_reader :port,
+                :dir,
+                :dbfilename,
+                :replicaof,
+                :leader_host,
+                :leader_port,
+                :master_replid,
+                :master_repl_offset
     def initialize(cl_args)
       @cl_args = cl_args
     end
@@ -33,6 +39,10 @@ module Redis
         end
       end.parse(cl_args)
       @port ||= DEFAULT_PORT
+      unless replicaof
+        @master_replid = Random.hex(20)
+        @master_repl_offset = 0
+      end
       log "configured redis server. port = #{port}, dir = #{dir}, dbfilename = #{dbfilename}"
       self
     rescue OptionParser::InvalidOption
