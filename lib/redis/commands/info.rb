@@ -7,12 +7,11 @@ module Redis
       end
 
       def encoded_response(config)
-        # hardcoded for now
         info = []
         {
           role: config.replicaof ? 'slave' : 'master',
-          master_replid: '8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb',
-          master_repl_offset: 0
+          master_replid: config.master_replid,
+          master_repl_offset: config.master_repl_offset
         }.each do |k, v|
           info << [k.to_s, v.to_s].join(':')
         end
