@@ -6,6 +6,10 @@ module Redis
         'SET'
       end
 
+      def encode_self
+        as_bulk_array type, key, value
+      end
+
       def encoded_response(config)
         as_simple_string 'OK'
       end
@@ -20,6 +24,10 @@ module Redis
 
       def perform_side_effects!(conn, config)
         set(key, value, options)
+      end
+
+      def write?
+        true
       end
     end
   end

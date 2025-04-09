@@ -86,6 +86,10 @@ module Redis
 
       end
 
+      def write?
+        false
+      end
+
       def self.type_to_klass(type)
         case type
         when 'PING'

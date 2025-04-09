@@ -84,6 +84,13 @@ module Redis
       #
       # todo: bytes written need to be added to the offset
       command = command_builder.build
+      if command.write? && !config.replicaof
+        config.replicas.each do |replica|
+          Thread.new do
+            replica.write command.encode_self
+          end
+        end
+      end
       monitor.interests = :w
       monitor.value = proc { respond(monitor, command) }
     rescue IO::WaitReadable, BadReadError => e

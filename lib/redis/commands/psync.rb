@@ -25,6 +25,7 @@ module Redis
       end
 
       def perform_side_effects!(conn, config)
+        config.replicas << conn
         Thread.new do
           rdb_file_path = [config.dir, config.dbfilename].join('/')
           # hardcoding empty rdb file for now, but will use actual file in reality

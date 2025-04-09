@@ -15,9 +15,11 @@ module Redis
                 :leader_host,
                 :leader_port,
                 :master_replid,
-                :master_repl_offset
+                :master_repl_offset,
+                :replicas
     def initialize(cl_args)
       @cl_args = cl_args
+      @replicas = []
     end
 
     def configure!
